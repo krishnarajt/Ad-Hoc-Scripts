@@ -79,6 +79,15 @@
         "documentation": {}
     },
     {
+        "label": "main",
+        "kind": 2,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "def main():\n    print(\"Hello from youtube-music-downloader!\")\nif __name__ == \"__main__\":\n    main()",
+        "detail": "main",
+        "documentation": {}
+    },
+    {
         "label": "YouTubePlaylistDownloader",
         "kind": 6,
         "importPath": "youtube_music_downloader_with_ytdlp",

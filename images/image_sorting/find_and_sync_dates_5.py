@@ -138,25 +138,47 @@ def modify_exif_and_create_modify_times(filepath, correct_date):
     if get_extension(filepath) in [".jpg", ".jpeg"]:
         try:
             img = Image.open(filepath)
-            exif_dict = (
-                piexif.load(img.info.get("exif", b""))
-                if "exif" in img.info
-                else {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": None}
-            )
+            
+            # Try to load existing EXIF, or create new dict
+            try:
+                exif_dict = piexif.load(img.info.get("exif", b""))
+            except:
+                exif_dict = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": None}
+            
+            # Ensure all required IFDs exist
+            for ifd in ("0th", "Exif", "GPS", "1st"):
+                if ifd not in exif_dict:
+                    exif_dict[ifd] = {}
+            
+            # Set the date/time fields
             correct_date_str = correct_date.strftime("%Y:%m:%d %H:%M:%S")
             exif_dict["0th"][piexif.ImageIFD.DateTime] = correct_date_str
             exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = correct_date_str
             exif_dict["Exif"][piexif.ExifIFD.DateTimeDigitized] = correct_date_str
-            exif_bytes = piexif.dump(exif_dict)
-            img.save(filepath, exif=exif_bytes)
+            
+            # Remove problematic tags that cause type errors
+            problematic_tags = [41729, 41730, 41985, 41986, 41987, 41988, 41989, 41990, 41991, 41992, 41993, 41994, 41995, 41996]
+            for tag in problematic_tags:
+                if tag in exif_dict["Exif"]:
+                    del exif_dict["Exif"][tag]
+            
+            # Try to dump EXIF data
+            try:
+                exif_bytes = piexif.dump(exif_dict)
+                img.save(filepath, exif=exif_bytes)
+            except Exception as dump_error:
+                print(f"Warning: Could not preserve EXIF for {filepath}: {dump_error}")
+                # Save without EXIF if dump fails
+                img.save(filepath)
+            
             img.close()
             return True
         except Exception as e:
             print(f"Error modifying {filepath}: {e}")
             return False
 
-    return True
-
+    return True   
+    
 def process_folder(folder_path, date_format, format_str):
     failed_files = []
     processed_files = []
